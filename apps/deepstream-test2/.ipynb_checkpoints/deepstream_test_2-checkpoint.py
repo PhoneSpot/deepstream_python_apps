@@ -139,7 +139,7 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
     # C address of gst_buffer as input, which is obtained with hash(gst_buffer)
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     classifier_meta = pyds.NvDsClassifierMeta
-#    print(classifier_meta.num_labels)
+    print("NUM_LABELS" + str(classifier_meta.num_labels))
 #    print(pyds.NvDsLabelInfo.cast().result_label)
     l_frame = batch_meta.frame_meta_list
     while l_frame is not None:
@@ -160,6 +160,7 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
         if 1:
 #        while l_obj is not None:
             try:
+                
                 label_id = pyds.NvDsLabelInfo.cast(batch_meta.label_info_meta_pool).label_id
                 # Casting l_obj.data to pyds.NvDsObjectMeta
 #                print('frame meta',frame_meta)
@@ -168,7 +169,7 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
                 frame_image=np.array(n_frame,copy=True,order='C')
                     #covert the array into cv2 default color format
                 frame_image=cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
-                print(f'{folder_name}/0/frame_{frame_number}.jpg')
+                # print(f'{folder_name}/0/frame_{frame_number}.jpg')
                 if label_id == 0:
                     cv2.imwrite(f'{folder_name}/0/frame_{frame_number}.jpg',frame_image)
                 elif label_id == 127:
