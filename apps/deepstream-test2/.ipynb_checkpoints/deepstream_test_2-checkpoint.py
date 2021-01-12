@@ -139,7 +139,7 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
     # C address of gst_buffer as input, which is obtained with hash(gst_buffer)
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
     classifier_meta = pyds.NvDsClassifierMeta
-    print("NUM_LABELS" + str(classifier_meta.cast(batch_meta.classifier_meta_pool)).num_labels)
+    print("NUM_LABELS" + str(classifier_meta.cast(batch_meta.classifier_meta_pool).num_labels))
 #    print(pyds.NvDsLabelInfo.cast().result_label)
     l_frame = batch_meta.frame_meta_list
     while l_frame is not None:
