@@ -62,12 +62,12 @@ net-scale-factor=1
 #proto-file=../../../../samples/models/Secondary_CarMake/resnet18.prototxt
 #model-engine-file=../../../../samples/models/Secondary_CarMake/resnet18.caffemodel_b16_gpu0_int8.engine
 #mean-file=../../../../samples/models/Secondary_CarMake/mean.ppm
-model-engine-file=/opt/nvidia/deepstream/deepstream-5.0/mount/half-car-parts.onnx.1.1.7103.GPU.FP16.engine
-#onnx-file=/opt/nvidia/deepstream/deepstream-5.0/mount/half-car-parts.onnx.1.1.7103.GPU.FP16.engine
+model-engine-file=/opt/nvidia/deepstream/deepstream-5.0/mount/half.onnx.1.1.7103.GPU.FP16.engine
+onnx-file=/opt/nvidia/deepstream/deepstream-5.0/mount/half.onnx
 labelfile-path=../../../../samples/models/Secondary_CarMake/labels.txt
 #int8-calib-file=../../../../samples/models/Secondary_CarMake/cal_trt.bin
 force-implicit-batch-dim=1
-batch-size=1
+batch-size=16
 # 0=FP32 and 1=INT8 mode
 network-mode=2
 input-object-min-width=64
