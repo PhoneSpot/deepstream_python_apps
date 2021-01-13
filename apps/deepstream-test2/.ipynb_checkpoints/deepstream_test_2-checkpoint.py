@@ -156,7 +156,7 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
         frame_number=frame_meta.frame_num
         num_rects = frame_meta.num_obj_meta
         frame_user_meta_list = frame_meta.frame_user_meta_list
-        print("TENSOR", frame_user_meta_list)
+        print("FRAME NUM", frame_number)
 #        l_obj=frame_meta.obj_meta_list
         print('label info',pyds.NvDsLabelInfo.cast(batch_meta.label_info_meta_pool).label_id)
         if 1:
