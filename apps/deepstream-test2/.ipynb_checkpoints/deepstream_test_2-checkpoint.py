@@ -161,7 +161,13 @@ def pgie_sink_pad_buffer_probe(pad,info,u_data):
                 continue
 
             tensor_meta = pyds.NvDsInferTensorMeta.cast(user_meta.user_meta_data)
-            print(tensor_meta)
+            
+            layers_info = []
+
+            for i in range(tensor_meta.num_output_layers):
+                layer = pyds.get_nvds_LayerInfo(tensor_meta, i)
+                layers_info.append()
+            print(layers_info)
             
             try:
                 l_user = l_user.next
