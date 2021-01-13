@@ -150,13 +150,15 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
             # in the C code, so the Python garbage collector will leave
             # it alone.
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
+            obj_meta = pyds.NvDsObjectMeta.cast(l_frame.data)
         except StopIteration:
             break
 
         frame_number=frame_meta.frame_num
         num_rects = frame_meta.num_obj_meta
         frame_user_meta_list = frame_meta.frame_user_meta_list
-        print("FRAME NUM", frame_number)
+        obj_user_meta_list = obj_meta.obj_user_meta_list
+        print("obj list", obj_user_meta_list)
 #        l_obj=frame_meta.obj_meta_list
         print('label info',pyds.NvDsLabelInfo.cast(batch_meta.label_info_meta_pool).label_id)
         if 1:
