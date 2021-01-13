@@ -76,13 +76,13 @@ input-object-min-height=64
 process-mode=1
 model-color-format=1
 gpu-id=0
-gie-unique-id=3
-operate-on-gie-id=1
-operate-on-class-ids=0
+gie-unique-id=1
+#operate-on-gie-id=1
+#operate-on-class-ids=0
 is-classifier=1
 output-blob-names=368
 #predictions/Softmax
-classifier-async-mode=1
+#classifier-async-mode=1
 classifier-threshold=0.3
 #scaling-filter=0
 #scaling-compute-hw=0
