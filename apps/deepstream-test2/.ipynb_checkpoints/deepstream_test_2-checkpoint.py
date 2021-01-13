@@ -159,7 +159,9 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
         frame_user_meta_list = frame_meta.frame_user_meta_list
         obj_user_meta_list = obj_meta.obj_user_meta_list
         if obj_user_meta_list is not None:
-            print(pyds.NvDsUserMeta(obj_user_meta_list.data))
+            print("Obj Meta", obj_user_meta_list)
+        if frame_user_meta_list is not None:
+            print("Frame Meta", frame_user_meta_list)
         count = 0
 #         for el in obj_user_meta_list:
 #             print(count + ":" + pyds.NvDsUserMeta.cast(el).user_meta_data)

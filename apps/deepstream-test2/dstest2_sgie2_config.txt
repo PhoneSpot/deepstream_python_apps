@@ -73,7 +73,7 @@ batch-size=1
 network-mode=2
 input-object-min-width=64
 input-object-min-height=64
-process-mode=2
+process-mode=1
 model-color-format=1
 gpu-id=0
 gie-unique-id=3
@@ -83,7 +83,6 @@ is-classifier=1
 output-blob-names=368
 #predictions/Softmax
 classifier-async-mode=1
-classifier-threshold=0.51
-process-mode=2
+classifier-threshold=0.3
 #scaling-filter=0
 #scaling-compute-hw=0
