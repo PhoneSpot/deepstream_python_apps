@@ -158,8 +158,8 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
         num_rects = frame_meta.num_obj_meta
         frame_user_meta_list = frame_meta.frame_user_meta_list
         obj_user_meta_list = obj_meta.obj_user_meta_list
-        print("obj list", frame_user_meta_list)
-        for user_meta in frame_user_meta_list:
+        print("obj list", obj_user_meta_list)
+        for user_meta in obj_user_meta_list:
             print(pyds.NvDsUserMeta.cast(user_meta).user_meta_data)
         count = 0
 #         for el in obj_user_meta_list:
