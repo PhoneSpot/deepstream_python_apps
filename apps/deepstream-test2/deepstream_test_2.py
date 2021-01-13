@@ -158,10 +158,10 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
         num_rects = frame_meta.num_obj_meta
         frame_user_meta_list = frame_meta.frame_user_meta_list
         obj_user_meta_list = obj_meta.obj_user_meta_list
-        print("obj list")
+        print("obj list", pyds.NvDsUserMeta.cast(obj_user_meta_list))
         count = 0
-        for el in obj_user_meta_list:
-            print(count + ":" + pyds.NvDsUserMeta.cast(el).user_meta_data)
+#         for el in obj_user_meta_list:
+#             print(count + ":" + pyds.NvDsUserMeta.cast(el).user_meta_data)
 #        l_obj=frame_meta.obj_meta_list
         print('label info',pyds.NvDsLabelInfo.cast(batch_meta.label_info_meta_pool).label_id)
         if 1:
