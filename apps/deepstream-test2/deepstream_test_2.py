@@ -144,10 +144,29 @@ def pgie_sink_pad_buffer_probe(pad,info,u_data):
             break
 
         l_user = frame_meta.frame_user_meta_list
-        while l_frame is not None:
-            user_meta = pyds.NvDsUserMeta.cast(l_user.data)
+        while l_user is not None:
+            try:
+                # Note that l_user.data needs a cast to pyds.NvDsUserMeta
+                # The casting also keeps ownership of the underlying memory
+                # in the C code, so the Python garbage collector will leave
+                # it alone.
+                user_meta = pyds.NvDsUserMeta.cast(l_user.data)
+            except StopIteration:
+                break
+
+            if (
+                    user_meta.base_meta.meta_type
+                    != pyds.NvDsMetaType.NVDSINFER_TENSOR_OUTPUT_META
+            ):
+                continue
+
             tensor_meta = pyds.NvDsInferTensorMeta.cast(user_meta.user_meta_data)
             print(tensor_meta)
+            
+            try:
+                l_user = l_user.next
+            except StopIteration:
+                break
         try:
             l_frame=l_frame.next
         except StopIteration:
