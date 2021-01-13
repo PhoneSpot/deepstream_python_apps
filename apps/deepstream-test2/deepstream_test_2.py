@@ -119,16 +119,9 @@ def create_source_bin(index,uri):
         return None
     return nbin
 
-def osd_sink_pad_buffer_probe(pad,info,u_data):
+def pgie_sink_pad_buffer_probe(pad,info,u_data):
     frame_number=0
-    #Intiallizing object counter with 0.
-#     obj_counter = {
-#         PGIE_CLASS_ID_VEHICLE:0,
-#         PGIE_CLASS_ID_PERSON:0,
-#         PGIE_CLASS_ID_BICYCLE:0,
-#         PGIE_CLASS_ID_ROADSIGN:0
-#     }
-#     num_rects=0
+    
     gst_buffer = info.get_buffer()
     if not gst_buffer:
         print("Unable to get GstBuffer ")
@@ -147,18 +140,12 @@ def osd_sink_pad_buffer_probe(pad,info,u_data):
             # in the C code, so the Python garbage collector will leave
             # it alone.
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
-            obj_meta = pyds.NvDsObjectMeta.cast(l_frame.data)
         except StopIteration:
             break
 
-        frame_user_meta_list = frame_meta.frame_user_meta_list
-        obj_user_meta_list = obj_meta.obj_user_meta_list
-        if obj_user_meta_list is not None:
-            user_meta = pyds.NvDsUserMeta.cast(obj_user_meta_list.data)
-            tensor_meta = pyds.NvDsInferTensorMeta.cast(user_meta.user_meta_data)
-            print(tensor_meta)
-        if frame_user_meta_list is not None:
-            user_meta = pyds.NvDsUserMeta.cast(frame_user_meta_list.data)
+        l_user = frame_meta.frame_user_meta_list
+        while l_frame is not None:
+            user_meta = pyds.NvDsUserMeta.cast(l_user.data)
             tensor_meta = pyds.NvDsInferTensorMeta.cast(user_meta.user_meta_data)
             print(tensor_meta)
         try:
@@ -227,54 +214,16 @@ def main(args):
             sys.stderr.write("Unable to create src pad bin \n")
         srcpad.link(sinkpad)
 
-    # # Source element for reading from the file
-    # print("Creating Source \n ")
-    # source = Gst.ElementFactory.make("filesrc", "file-source")
-    # if not source:
-    #     sys.stderr.write(" Unable to create Source \n")
-
-    # Since the data format in the input file is elementary h264 stream,
-    # we need a h264parser
-    # print("Creating H264Parser \n")
-    # h264parser = Gst.ElementFactory.make("h264parse", "h264-parser")
-    # if not h264parser:
-    #     sys.stderr.write(" Unable to create h264 parser \n")
-
-    # # Use nvdec_h264 for hardware accelerated decode on GPU
-    # print("Creating Decoder \n")
-    # decoder = Gst.ElementFactory.make("nvv4l2decoder", "nvv4l2-decoder")
-    # if not decoder:
-    #     sys.stderr.write(" Unable to create Nvv4l2 Decoder \n")
-
-    # # Create nvstreammux instance to form batches from one or more sources.
-    # streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
-    # if not streammux:
-    #     sys.stderr.write(" Unable to create NvStreamMux \n")
-
     # Use nvinfer to run inferencing on decoder's output,
     # behaviour of inferencing is set through config file
     pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")
     if not pgie:
         sys.stderr.write(" Unable to create pgie \n")
 
-    tracker = Gst.ElementFactory.make("nvtracker", "tracker")
-    if not tracker:
-        sys.stderr.write(" Unable to create tracker \n")
-
     nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor")
     if not nvvidconv:
         sys.stderr.write(" Unable to create nvvidconv \n")
-
-    # Create OSD to draw on the converted RGBA buffer
-    nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
-
-    if not nvosd:
-        sys.stderr.write(" Unable to create nvosd \n")
-
-    # Finally render the osd output
-#    if is_aarch64():
-#        transform = Gst.ElementFactory.make("nvegltransform", "nvegl-transform")
-
+        
     print("Creating EGLSink \n")
     sink = Gst.ElementFactory.make("fakesink", "fakesink")
     if not sink:
@@ -295,7 +244,6 @@ def main(args):
     pipeline.add(pgie)
 
     pipeline.add(nvvidconv)
-    pipeline.add(nvosd)
     pipeline.add(sink)
     
     # we link the elements together
@@ -304,10 +252,8 @@ def main(args):
     print("Linking elements in the Pipeline \n")
     
     streammux.link(pgie)
-
     pgie.link(nvvidconv)
-    nvvidconv.link(nvosd)
-    nvosd.link(sink)
+    nvvidconv.link(sink)
 
     # create and event loop and feed gstreamer bus mesages to it
     loop = GObject.MainLoop()
@@ -319,10 +265,11 @@ def main(args):
     # Lets add probe to get informed of the meta data generated, we add probe to
     # the sink pad of the osd element, since by that time, the buffer would have
     # had got all the metadata.
-    osdsinkpad = nvosd.get_static_pad("sink")
-    if not osdsinkpad:
-        sys.stderr.write(" Unable to get sink pad of nvosd \n")
-    osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, osd_sink_pad_buffer_probe, 0)
+    pgiesinkpad = pgie.get_static_pad("src")
+    if not pgiesinkpad:
+        sys.stderr.write(" Unable to get src pad of primary infer \n")
+
+    pgiesinkpad.add_probe(Gst.PadProbeType.BUFFER, pgie_sink_pad_buffer_probe, 0)
 
 
     print("Starting pipeline \n")
