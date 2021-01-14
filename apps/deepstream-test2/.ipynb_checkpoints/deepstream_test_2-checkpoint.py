@@ -31,6 +31,7 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst
 from ctypes import *
+import ctypes
 import time
 import sys
 import math
@@ -51,6 +52,9 @@ PGIE_CLASS_ID_VEHICLE = 0
 PGIE_CLASS_ID_BICYCLE = 1
 PGIE_CLASS_ID_PERSON = 2
 PGIE_CLASS_ID_ROADSIGN = 3
+
+CLASSES = ["front", "road", "side", "top", "windshield"]
+
 
 def cb_newpad(decodebin, decoder_src_pad,data):
     print("In cb_newpad\n")
@@ -164,11 +168,15 @@ def pgie_sink_pad_buffer_probe(pad,info,u_data):
             
             layers_info = []
 
-            for i in range(tensor_meta.num_output_layers):
-                layer = pyds.get_nvds_LayerInfo(tensor_meta, i)
-                layers_info.append()
-            print(layers_info)
-            
+#             for i in range(tensor_meta.num_output_layers):
+            layer = pyds.get_nvds_LayerInfo(tensor_meta, 0)
+            if layer.buffer:
+                ptr = ctypes.cast(pyds.get_ptr(layer.buffer), ctypes.POINTER(ctypes.c_float))
+                v = np.ctypeslib.as_array(ptr, shape=(5,))
+                prediction=int(np.argmax(np.array(v).squeeze(), axis=0))
+                classification = CLASSES[prediction]
+                if(classification = "")
+        
             try:
                 l_user = l_user.next
             except StopIteration:
