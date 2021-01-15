@@ -47,6 +47,7 @@ from os import path
 fps_streams={}
 frame_count={}
 saved_count={}
+classifications={}
 
 PGIE_CLASS_ID_VEHICLE = 0
 PGIE_CLASS_ID_BICYCLE = 1
@@ -123,7 +124,7 @@ def create_source_bin(index,uri):
         return None
     return nbin
 
-def pgie_sink_pad_buffer_probe(pad,info,u_data):
+def pgie_src_pad_buffer_probe(pad,info,u_data):
     frame_number=0
     
     gst_buffer = info.get_buffer()
@@ -146,8 +147,10 @@ def pgie_sink_pad_buffer_probe(pad,info,u_data):
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
         except StopIteration:
             break
-
+            
+        frame_number=frame_meta.frame_num
         l_user = frame_meta.frame_user_meta_list
+        print(l_user)
         while l_user is not None:
             try:
                 # Note that l_user.data needs a cast to pyds.NvDsUserMeta
@@ -168,24 +171,69 @@ def pgie_sink_pad_buffer_probe(pad,info,u_data):
             
             layers_info = []
 
-#             for i in range(tensor_meta.num_output_layers):
             layer = pyds.get_nvds_LayerInfo(tensor_meta, 0)
             if layer.buffer:
                 ptr = ctypes.cast(pyds.get_ptr(layer.buffer), ctypes.POINTER(ctypes.c_float))
                 v = np.ctypeslib.as_array(ptr, shape=(5,))
                 prediction=int(np.argmax(np.array(v).squeeze(), axis=0))
                 classification = CLASSES[prediction]
-                if(classification = "")
-        
+                
+                classifications[frame_number] = classification
             try:
                 l_user = l_user.next
             except StopIteration:
                 break
+        fps_streams["stream{0}".format(frame_meta.pad_index)].get_fps()
         try:
             l_frame=l_frame.next
         except StopIteration:
             break
     return Gst.PadProbeReturn.OK	
+
+def osd_sink_pad_buffer_probe(pad, info, u_data):
+    frame_number = 0
+    # Intiallizing object counter with 0.
+
+    gst_buffer = info.get_buffer()
+    if not gst_buffer:
+        print("Unable to get GstBuffer ")
+        return
+
+    # Retrieve batch metadata from the gst_buffer
+    # Note that pyds.gst_buffer_get_nvds_batch_meta() expects the
+    # C address of gst_buffer as input, which is obtained with hash(gst_buffer)
+    batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
+    l_frame = batch_meta.frame_meta_list
+    while l_frame is not None:
+        try:
+            # Note that l_frame.data needs a cast to pyds.NvDsFrameMeta
+            # The casting also keeps ownership of the underlying memory
+            # in the C code, so the Python garbage collector will leave
+            # it alone.
+            frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
+        except StopIteration:
+            break
+
+        frame_number = frame_meta.frame_num
+        classification = classifications[frame_number]
+        
+        n_frame=pyds.get_nvds_buf_surface(hash(gst_buffer),frame_meta.batch_id)
+        #convert python array into numy array format.
+        frame_image=np.array(n_frame,copy=True,order='C')
+        #convert the array into cv2 default color format
+        frame_image=cv2.cvtColor(frame_image,cv2.COLOR_RGBA2BGRA)
+        print(classification)
+        if path.exists(f'{folder_name}/{classification}') == False:
+            os.mkdir(f'{folder_name}/{classification}')
+        cv2.imwrite(f'{folder_name}/{classification}/frame_{frame_number}.jpg',frame_image)
+        
+        try:
+            l_frame = l_frame.next
+        except StopIteration:
+            break
+
+    return Gst.PadProbeReturn.OK
+
 
 def main(args):
     # Check input arguments
@@ -256,8 +304,14 @@ def main(args):
     nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor")
     if not nvvidconv:
         sys.stderr.write(" Unable to create nvvidconv \n")
-        
+
+    # Create OSD to draw on the converted RGBA buffer
+    nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
+
+    if not nvosd:
+        sys.stderr.write(" Unable to create nvosd \n")
     print("Creating EGLSink \n")
+    
     sink = Gst.ElementFactory.make("fakesink", "fakesink")
     if not sink:
         sys.stderr.write(" Unable to create egl sink \n")
@@ -275,8 +329,8 @@ def main(args):
 
     print("Adding elements to Pipeline \n")
     pipeline.add(pgie)
-
     pipeline.add(nvvidconv)
+    pipeline.add(nvosd)
     pipeline.add(sink)
     
     # we link the elements together
@@ -286,7 +340,8 @@ def main(args):
     
     streammux.link(pgie)
     pgie.link(nvvidconv)
-    nvvidconv.link(sink)
+    nvvidconv.link(nvosd)
+    nvosd.link(sink)
 
     # create and event loop and feed gstreamer bus mesages to it
     loop = GObject.MainLoop()
@@ -298,12 +353,21 @@ def main(args):
     # Lets add probe to get informed of the meta data generated, we add probe to
     # the sink pad of the osd element, since by that time, the buffer would have
     # had got all the metadata.
-    pgiesinkpad = pgie.get_static_pad("src")
-    if not pgiesinkpad:
+    # Add a probe on the primary-infer source pad to get inference output tensors
+    pgiesrcpad = pgie.get_static_pad("src")
+    if not pgiesrcpad:
         sys.stderr.write(" Unable to get src pad of primary infer \n")
 
-    pgiesinkpad.add_probe(Gst.PadProbeType.BUFFER, pgie_sink_pad_buffer_probe, 0)
+    pgiesrcpad.add_probe(Gst.PadProbeType.BUFFER, pgie_src_pad_buffer_probe, 0)
 
+    # Lets add probe to get informed of the meta data generated, we add probe to
+    # the sink pad of the osd element, since by that time, the buffer would have
+    # had got all the metadata.
+    osdsinkpad = nvosd.get_static_pad("sink")
+    if not osdsinkpad:
+        sys.stderr.write(" Unable to get sink pad of nvosd \n")
+
+    osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, osd_sink_pad_buffer_probe, 0)
 
     print("Starting pipeline \n")
     
